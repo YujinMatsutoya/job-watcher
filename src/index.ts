@@ -6,9 +6,11 @@ import { loadState } from "./state.js";
 
 const dryRun = process.argv.includes("--dry-run");
 
+const { state, rules: previousRules } = loadState();
 const outcome = await run({
   config: loadConfig(),
-  state: loadState(),
+  state,
+  previousRules,
   adapters,
   ctx: { fetchJson, delayMs: 1000 },
   now: new Date().toISOString(),

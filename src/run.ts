@@ -4,11 +4,13 @@ import { buildMatcher } from "./match.js";
 import { renderReport, type SiteResult } from "./report.js";
 import { diffSite, saveState } from "./state.js";
 import type { Adapter, AdapterContext } from "./sites/types.js";
-import type { Config, State } from "./types.js";
+import type { Config, Rules, State } from "./types.js";
 
 export interface RunOptions {
   config: Config;
   state: State;
+  /** Rules the state was last evaluated with (from seen.json _meta). */
+  previousRules?: Rules;
   adapters: Record<string, Adapter>;
   ctx: AdapterContext;
   now: string;
@@ -23,6 +25,7 @@ export interface RunOutcome {
   results: SiteResult[];
   report: string;
   state: State;
+  rules?: Rules;
   failed: boolean;
 }
 
@@ -32,6 +35,10 @@ export async function run(opts: RunOptions): Promise<RunOutcome> {
   const log = opts.log ?? (() => {});
   const isMatch = buildMatcher(config.keywords, config.exclude);
   let state = opts.state;
+  const stateHasData = Object.keys(state).length > 0;
+  const diffOpts = opts.previousRules
+    ? { wasMatch: buildMatcher(opts.previousRules.keywords, opts.previousRules.exclude) }
+    : { forceInitial: stateHasData }; // old state file without rules: report all matches once
   const results: SiteResult[] = [];
 
   for (const site of config.sites) {
@@ -43,9 +50,9 @@ export async function run(opts: RunOptions): Promise<RunOutcome> {
       if (jobs.length === 0 && previouslySeen > 0) {
         throw new Error(`returned 0 jobs but ${previouslySeen} were seen before (site changed or blocked us?)`);
       }
-      const { diff, next } = diffSite(state, site.id, jobs, isMatch, now);
+      const { diff, next } = diffSite(state, site.id, jobs, isMatch, now, diffOpts);
       state = next;
-      results.push({ siteId: site.id, status: "ok", initial: diff.initial, newMatches: diff.newMatches });
+      results.push({ siteId: site.id, status: "ok", initial: diff.initial, updated: diff.updated, newMatches: diff.newMatches });
       log(`${site.id}: ${jobs.length} jobs, ${diff.newMatches.length} new match(es)`);
     } catch (err) {
       const cause = err instanceof Error && err.cause instanceof Error ? ` (${err.cause.message})` : "";
@@ -55,14 +62,20 @@ export async function run(opts: RunOptions): Promise<RunOutcome> {
     }
   }
 
+  const failed = results.some((r) => r.status === "failed");
+  // If a site failed, keep the old rules so its changed-keyword matches are not lost.
+  const rules: Rules | undefined = failed
+    ? opts.previousRules
+    : { keywords: config.keywords, exclude: config.exclude };
+
   const report = renderReport(results, now.slice(0, 10));
   if (!dryRun) {
-    saveState(state, opts.statePath);
+    saveState(state, opts.statePath, rules);
     const reportPath = opts.reportPath ?? "data/latest.md";
     mkdirSync(dirname(reportPath), { recursive: true });
     writeFileSync(reportPath, report + "\n");
   }
   if (opts.summaryPath) appendFileSync(opts.summaryPath, report + "\n");
 
-  return { results, report, state, failed: results.some((r) => r.status === "failed") };
+  return { results, report, state, rules, failed };
 }

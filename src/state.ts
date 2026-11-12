@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import type { Job, State } from "./types.js";
+import type { Job, Rules, State } from "./types.js";
 import type { Matcher } from "./match.js";
 
 export interface SiteDiff {
@@ -10,16 +10,27 @@ export interface SiteDiff {
   initial: boolean;
   /** Ids seen previously but absent from this run (informational). */
   removed: string[];
+  /** True when some already-seen jobs are reported because the keywords changed. */
+  updated: boolean;
 }
 
-export function loadState(path = "data/seen.json"): State {
-  if (!existsSync(path)) return {};
-  return JSON.parse(readFileSync(path, "utf8")) as State;
+export interface DiffOptions {
+  /** Matcher built from the rules the state was last evaluated with. */
+  wasMatch?: Matcher;
+  /** Rules unknown (old state file): report every current match once. */
+  forceInitial?: boolean;
 }
 
-export function saveState(state: State, path = "data/seen.json"): void {
+/** seen.json = { _meta: { keywords, exclude }, <siteId>: { <jobId>: SeenJob } } */
+export function loadState(path = "data/seen.json"): { state: State; rules?: Rules } {
+  if (!existsSync(path)) return { state: {} };
+  const { _meta, ...state } = JSON.parse(readFileSync(path, "utf8")) as State & { _meta?: Rules };
+  return { state: state as State, rules: _meta };
+}
+
+export function saveState(state: State, path = "data/seen.json", rules?: Rules): void {
   mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, JSON.stringify(state, null, 2) + "\n");
+  writeFileSync(path, JSON.stringify(rules ? { _meta: rules, ...state } : state, null, 2) + "\n");
 }
 
 /**
@@ -33,12 +44,18 @@ export function diffSite(
   jobs: Job[],
   isMatch: Matcher,
   now: string,
+  opts: DiffOptions = {},
 ): { diff: SiteDiff; next: State } {
   const before = prev[siteId];
-  const initial = before === undefined;
+  const initial = before === undefined || opts.forceInitial === true;
   const known = before ?? {};
 
-  const newMatches = jobs.filter((j) => isMatch(j.title) && (initial || !(j.id in known)));
+  // New = matches now and either never seen, or seen but did not match under the
+  // previous rules (i.e. a keyword was added / an exclude removed since).
+  const isNew = (j: Job) =>
+    initial || !(j.id in known) || (opts.wasMatch !== undefined && !opts.wasMatch(j.title));
+  const newMatches = jobs.filter((j) => isMatch(j.title) && isNew(j));
+  const updated = !initial && newMatches.some((j) => j.id in known);
 
   const site = { ...known };
   const current = new Set<string>();
@@ -48,5 +65,5 @@ export function diffSite(
   }
   const removed = Object.keys(known).filter((id) => !current.has(id));
 
-  return { diff: { newMatches, initial, removed }, next: { ...prev, [siteId]: site } };
+  return { diff: { newMatches, initial, removed, updated }, next: { ...prev, [siteId]: site } };
 }

@@ -4,6 +4,8 @@ export interface SiteResult {
   siteId: string;
   status: "ok" | "failed";
   initial?: boolean;
+  /** Some matches are already-seen jobs surfaced by changed keywords. */
+  updated?: boolean;
   newMatches?: Job[];
   error?: string;
 }
@@ -31,7 +33,7 @@ export function renderReport(results: SiteResult[], date: string): string {
       out.push("No new matches.", "");
       continue;
     }
-    out.push(r.initial ? `Initial matches (${jobs.length}):` : `${jobs.length} new:`, "");
+    out.push(r.initial ? `Initial matches (${jobs.length}):` : r.updated ? `${jobs.length} new (includes existing roles matching updated keywords):` : `${jobs.length} new:`, "");
     out.push("| Title | Location |", "| --- | --- |");
     for (const j of jobs) out.push(`| [${esc(j.title)}](${j.url}) | ${esc(j.location)} |`);
     out.push("");

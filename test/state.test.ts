@@ -53,3 +53,34 @@ describe("diffSite", () => {
     expect(next.other).toEqual(prev.other);
   });
 });
+
+describe("diffSite with changed keywords", () => {
+  const was = buildMatcher(["QA"]);
+  const now = buildMatcher(["QA", "Client"]);
+
+  it("reports already-seen jobs that only match under the new keywords, once", () => {
+    const jobs = [job("1", "QA Engineer"), job("2", "Client Manager")];
+    const first = diffSite({}, "s", jobs, was, T1);
+    const { diff, next } = diffSite(first.next, "s", jobs, now, T2, { wasMatch: was });
+    expect(diff.newMatches.map((j) => j.id)).toEqual(["2"]);
+    expect(diff.updated).toBe(true);
+    const again = diffSite(next, "s", jobs, now, T2, { wasMatch: now });
+    expect(again.diff.newMatches).toEqual([]);
+    expect(again.diff.updated).toBe(false);
+  });
+
+  it("does not alert when a keyword is removed", () => {
+    const jobs = [job("1", "QA Engineer"), job("2", "Client Manager")];
+    const first = diffSite({}, "s", jobs, now, T1);
+    const { diff } = diffSite(first.next, "s", jobs, was, T2, { wasMatch: now });
+    expect(diff.newMatches).toEqual([]);
+  });
+
+  it("forceInitial reports every current match (old state without rules)", () => {
+    const jobs = [job("1", "QA Engineer"), job("2", "Client Manager")];
+    const first = diffSite({}, "s", jobs, now, T1);
+    const { diff } = diffSite(first.next, "s", jobs, now, T2, { forceInitial: true });
+    expect(diff.initial).toBe(true);
+    expect(diff.newMatches).toHaveLength(2);
+  });
+});

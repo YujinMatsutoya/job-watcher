@@ -27,3 +27,9 @@ export interface SeenJob {
 
 /** { siteId: { jobId: SeenJob } } */
 export type State = Record<string, Record<string, SeenJob>>;
+
+/** The matching rules a state file was last evaluated with. */
+export interface Rules {
+  keywords: string[];
+  exclude: string[];
+}
