@@ -1,4 +1,13 @@
 {
+  "_meta": {
+    "keywords": [
+      "QA",
+      "Test*",
+      "Quality",
+      "Client"
+    ],
+    "exclude": []
+  },
   "capgemini-uk": {
     "589352-en_GB_SAPBTP": {
       "title": "Sr. Software Engineer",
