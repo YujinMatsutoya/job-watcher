@@ -1,0 +1,33 @@
+{
+ "total": 0,
+ "jobPostings": [
+  {
+   "title": "Box Office Agent",
+   "externalPath": "/job/Tacoma-WA-USA/Box-Office-Agent_JR-57162-1",
+   "locationsText": "Tacoma, WA, USA",
+   "postedOn": "Posted 30+ Days Ago",
+   "bulletFields": [
+    "JR-57162"
+   ]
+  },
+  {
+   "title": "Agent(e) \u00e0 la billetterie - Box Office Agent",
+   "externalPath": "/job/Quebec-City-QC/Agent-e---la-billetterie---Box-Office-Agent_JR-82950",
+   "locationsText": "2 Locations",
+   "postedOn": "Posted 30+ Days Ago",
+   "bulletFields": [
+    "JR-82950"
+   ]
+  },
+  {
+   "title": "Box Office Supervisor",
+   "externalPath": "/job/Vancouver-BC-CA/Box-Office-Supervisor_JR-79119",
+   "locationsText": "Vancouver, BC, CA",
+   "postedOn": "Posted 30+ Days Ago",
+   "bulletFields": [
+    "JR-79119"
+   ]
+  }
+ ],
+ "userAuthenticated": false
+}

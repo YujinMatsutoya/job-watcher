@@ -1,0 +1,23 @@
+{
+  "keywords": [
+    "QA",
+    "Test*",
+    "Quality"
+  ],
+  "exclude": [],
+  "sites": [
+    {
+      "id": "capgemini-uk",
+      "adapter": "capgemini",
+      "api": "https://cg-jobstream-api.azurewebsites.net/api",
+      "country_code": "gb-en"
+    },
+    {
+      "id": "ticketmaster",
+      "adapter": "workday",
+      "host": "livenation.wd503.myworkdayjobs.com",
+      "tenant": "livenation",
+      "site": "TMExternalSite"
+    }
+  ]
+}
